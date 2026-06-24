@@ -256,17 +256,27 @@ function analyzePolicy(text,filename){
   const warnings=[];
 
   // ── Policyholder Name ──
-  // First try to extract a clean name using a more targeted approach
-  let name='';
-  
-  // Try pattern 1: Insured/Policyholder label followed by name
-  const nameMatch1=t.match(/(?:Named\s+Insured|Policyholder|Insured)\s*:?\s*\n?\s*([A-Z][a-zA-Z\s&\.]+?)(?:\n|Address|City|State|Phone|Email|Policy|Coverage|Limit|$)/i);
-  if(nameMatch1){
-    name=nameMatch1[1].trim().split('\n')[0].trim();
+  // Extract location/name from filename as primary source
+  let name=filename.replace(/\.pdf$/i,'').replace(/_/g,' ');
+  // Extract location from "Location - Home Insurance Quote" pattern
+  const filenameMatch=name.match(/^([A-Z][a-zA-Z\s&\.]+?)\s*(?:-|Home Insurance|Quote)/i);
+  if(filenameMatch){
+    name=filenameMatch[1].trim();
   }
   
-  // Filter out junk patterns
-  const junkPatterns=[/^auto,?\s+up\s+to\s+a/i, /^limit|^coverage|^endorsement|^section|^form|^home\s+insurance/i];
+  // Apply aggressive junk pattern filtering
+  const junkPatterns=[
+    /^motorist\s+protection/i,
+    /^auto,?\s+up\s+to\s+a/i,
+    /^limit\s+of/i,
+    /^coverage\s+(?:section|limit)/i,
+    /^endorsement/i,
+    /^section\s+\d/i,
+    /^form\s+/i,
+    /^home\s+insurance/i,
+    /^\d+\s*\//i  // starts with dates
+  ];
+  
   for(const pattern of junkPatterns){
     if(pattern.test(name)){
       name='';
@@ -274,14 +284,27 @@ function analyzePolicy(text,filename){
     }
   }
   
-  // If still empty or too short, try extracting from filename
+  // Fallback: if name is empty or too short
   if(!name||name.length<2){
-    name=filename.replace(/\.pdf$/i,'').replace(/_/g,' ').replace(/\s*-\s*Home Insurance Quote/i,'');
-    // Extract the location name (appears before the dash)
-    const locationMatch=name.match(/^([A-Z][a-zA-Z\s]+?)\s*-?\s*Home/i);
-    if(locationMatch){
-      name=locationMatch[1].trim();
+    // Try to extract from PDF text directly as last resort
+    const namePatternMatch=t.match(/(?:Named\s+Insured|Policyholder|Insured)\s*:?\s*\n?\s*([A-Z][a-zA-Z\s&\.]{2,50}?)(?:\n|Address|City|State|Phone|Email|Policy)/i);
+    if(namePatternMatch){
+      const extractedName=namePatternMatch[1].trim().split('\n')[0].trim();
+      // Verify extracted name isn't junk
+      let isJunk=false;
+      for(const pattern of junkPatterns){
+        if(pattern.test(extractedName)){
+          isJunk=true;
+          break;
+        }
+      }
+      if(!isJunk) name=extractedName;
     }
+  }
+  
+  // Last resort: use filename without extension
+  if(!name||name.length<2){
+    name=filename.replace(/\.pdf$/i,'').replace(/_/g,' ');
   }
 
   // ── Proposal and Effective Dates ──
