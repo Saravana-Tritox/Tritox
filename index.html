@@ -358,25 +358,16 @@ function analyzePolicy(text,filename){
   }
 
   // ── CONSTRUCTION TYPE ──
-  const hasBrickVeneer=/Brick\s+veneer/i.test(t);
-  const hasWoodFraming=/Wood\s+framing|Wood\s+frame/i.test(t);
   const hasSolidBrick=/Solid\s+brick\s+construction/i.test(t);
   
   if(hasSolidBrick){
     errors.push('⛔ Document contains "Solid brick construction" — must be removed or corrected');
   }
 
-  const constructionType=[];
-  if(hasBrickVeneer) constructionType.push('Brick Veneer');
-  if(hasWoodFraming) constructionType.push('Wood Framing');
-  if(!hasBrickVeneer&&!hasWoodFraming&&!hasSolidBrick){
-    warnings.push('Construction type (Brick Veneer / Wood Framing) not clearly identified');
-  }
-
   const status=errors.length>0?'fail':warnings.length>0?'warn':'pass';
   return{filename,name,proposalDate:proposalDateStr,effectiveDate:effectiveDateStr,
     endorsements:foundEndorsements,errors,warnings,status,
-    checks:{dateOk,dateDiff,ebLimit,ulLimit,constructionType,hasSolidBrick}};
+    checks:{dateOk,dateDiff,ebLimit,ulLimit,hasSolidBrick}};
 }
 
 function parseDate(str){
@@ -451,14 +442,12 @@ function buildDetails(r){
     </div>`;
   }
 
-  const constructionInfo=c.constructionType&&c.constructionType.length>0?c.constructionType.join(', '):'Not detected';
-
   return `
     <div class="detail-group">
       <h4>Dates</h4>
       ${ck(c.dateOk,'Effective Date vs Proposal (7 days)',c.dateDiff!==null?`${c.dateDiff} days`:'')}
-      ${c.proposalDateStr?`<div class="check-item"><span class="ci-label">Proposal: ${c.proposalDateStr}</span></div>`:''}
-      ${c.effectiveDateStr?`<div class="check-item"><span class="ci-label">Effective: ${c.effectiveDateStr}</span></div>`:''}
+      ${r.proposalDate?`<div class="check-item"><span class="ci-label">Proposal: ${r.proposalDate}</span></div>`:''}
+      ${r.effectiveDate?`<div class="check-item"><span class="ci-label">Effective: ${r.effectiveDate}</span></div>`:''}
     </div>
     <div class="detail-group">
       <h4>Required Endorsements</h4>
@@ -472,7 +461,6 @@ function buildDetails(r){
     <div class="detail-group">
       <h4>Construction</h4>
       ${ck(!c.hasSolidBrick,'Solid Brick Construction',c.hasSolidBrick?'FOUND':'NOT FOUND')}
-      <div class="check-item"><span class="ci-label">Type: ${constructionInfo}</span></div>
     </div>`;
 }
 
