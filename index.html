@@ -128,7 +128,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
     <input type="file" id="fileInput" multiple accept=".pdf"/>
     <span class="upload-icon">📂</span>
     <h2>Drop Property Insurance PDFs Here</h2>
-    <p>Verify Endorsements · Dates · Construction · Upload up to 10 PDFs</p>
+    <p>Verify Endorsements · Dates · Construction · Unlimited uploads</p>
     <button class="btn-upload" onclick="document.getElementById('fileInput').click()">Select PDF Files</button>
   </div>
 
@@ -176,7 +176,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 let allResults=[];
 let activeFilter='all';
-const MAX_FILES=10;
 
 const zone=document.getElementById('uploadZone');
 zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
@@ -195,11 +194,6 @@ async function handleFiles(files){
   const pdfs=Array.from(files).filter(f=>f.name.toLowerCase().endsWith('.pdf'));
   if(!pdfs.length)return;
   
-  if(pdfs.length>MAX_FILES){
-    alert(`Maximum ${MAX_FILES} files allowed. You selected ${pdfs.length}.`);
-    return;
-  }
-  
   document.getElementById('progressWrap').style.display='block';
   document.getElementById('summaryBar').style.display='flex';
   document.getElementById('toolbar').style.display='flex';
@@ -209,7 +203,7 @@ async function handleFiles(files){
   for(let i=0;i<pdfs.length;i++){
     label.textContent=`Processing ${i+1} of ${pdfs.length}: ${pdfs[i].name}`;
     fill.style.width=((i/pdfs.length)*100)+'%';
-    const spinId='spin_'+Date.now();
+    const spinId='spin_'+Date.now()+'_'+i;
     const tbody=document.getElementById('resultsBody');
     const spinRow=document.createElement('tr');
     spinRow.id=spinId;spinRow.className='processing-row';
